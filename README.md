@@ -6,7 +6,7 @@ the folder in the extension, and start editing — or fork it as the base for
 your own reusable template.
 
 You can preview this starter template online at
-[CloudFlare Pages](https://cs-startersite-bootstrap.pages.dev/)
+[CloudFlare Pages](https://wh-startersite-tailwind.pages.dev/)
 
 This repo is content + config, not a buildable app in the usual sense — but
 unlike WebHaste's plain starters, it **does** need Node/npm, because Tailwind
@@ -24,10 +24,11 @@ Publish / Render to Local Folder produces.
 
 ## Quick start
 
-1. Clone the repo and run `npm install` once (see
+1. Clone the repo, open a Command Prompt or Terminal window,
+   navigate to your project folder and run `npm install` once (see
    [Building the CSS](#building-the-css-tailwind) — this is the one
    Tailwind-specific step a plain WebHaste starter wouldn't need).
-2. Open the folder in the WebHaste extension.
+2. In your browser in the WebHaste extension, open your project folder
 3. Click "Site Settings" in the extension to set your URL and deployment
    settings. You also can edit `.webhaste/site.config.json` manually — 
    set `siteName`, `domain`, and
@@ -75,9 +76,7 @@ preview** — the extension's own Content-Security-Policy blocks any
 to *any* third-party CDN script, not just Tailwind's — see `scripts/main.js`
 below for the same restriction). The script gets silently blocked, so
 Tailwind's runtime class-scanner never runs and nothing gets styled — no
-error, just a blank-looking preview. It *would* work once actually published
-(no CSP on a real site), but that's a confusing gap between what you see in
-WebHaste and what ships.
+error, just a blank-looking preview.
 
 So instead, this starter precompiles Tailwind into a real CSS file,
 `scripts/styles.css`, and the template links to that with a normal
@@ -86,10 +85,16 @@ That means:
 
 - `scripts/styles.css` is **generated** — don't hand-edit it, your changes
   will be overwritten by the next build. Edit `tailwind-input.css` (project
-  root) instead — that's the real source: `@import "tailwindcss";`, this
-  site's brand color theme (`@theme`), a couple of reusable button classes
-  (`@layer components`), and any plain hand-written CSS.
-- After `npm install`, run one of:
+  root) instead if you need to modify base colors or tailwind behavior — 
+  that's the real source: `@import "tailwindcss";`, this site's brand color 
+  theme (`@theme`), a couple of reusable button classes (`@layer components`),
+  and any plain hand-written CSS.
+- `scripts/custom.css` is where any new hand-written CSS classes should go
+  instead — a plain, non-generated stylesheet that survives every Tailwind
+  rebuild untouched. If used, `template.html` links it right after `styles.css`, 
+  so it loads second and can override a generated utility class if you need
+  it to.
+- After `npm install`, in your terminal run one of:
   ```
   npm run build:css     # one-off compile
   npm run watch:css     # recompiles on every save while you work
@@ -123,6 +128,7 @@ That means:
 ├── scripts/
 │   ├── styles.css              ← generated — compiled from tailwind-input.css,
 │   │                              don't hand-edit
+│   ├── custom.css              ← hand-written CSS goes here, not styles.css
 │   └── scripts.js              ← site-wide custom JS
 ├── dist/                       ← build output — generated, don't hand-edit
 └── .webhaste/
@@ -166,6 +172,7 @@ Whichever template is active, it defines where these placeholders go:
 | `{{NAV:header}}` / `{{NAV:footer}}` | Rendered menu markup from `nav.json`, per the framework in use |
 | `{{SITE_NAME}}`         | From `site.config.json`                        |
 | `{{YEAR}}`              | Current year                                   |
+| `{{LANG}}`              | Used in the page language declaration          |
 
 There's no placeholder for CSS framework assets — WebHaste doesn't inject
 or manage those. `template.html`'s `<link href="/scripts/styles.css">` is
@@ -177,9 +184,6 @@ To build your own template variant, copy one of the existing files in
 `.webhaste/templates/`, adjust markup, and point `activeTemplate` at it.
 
 ### `site.config.json` drives what markup is "correct"
-
-Don't assume Bootstrap classes or `<p>` paragraphs are always right — check
-this file before writing any markup:
 
 - **`cssFramework`** — `bootstrap5`, `tailwind`, or `none`. This starter is
   set to `tailwind`; class names throughout the template, blocks, and pages
@@ -261,11 +265,12 @@ These are regenerated and any manual changes will be overwritten:
   **`.webhaste/block-library.md`** — regenerated every time the project
   folder is opened in the editor.
 
-Everything else — `CLAUDE.md`, `tailwind-input.css`, `package.json`,
-`.webhaste/templates/`, `.webhaste/site.config.json`, `.webhaste/nav.json`,
-`.webhaste/pages.json` — is copied in once (or hand-authored) and safe to
-edit freely. JSON config files aren't validated on load, so double-check
-they stay valid; a broken file falls back to defaults silently.
+Everything else — `CLAUDE.md`, `tailwind-input.css`, `scripts/custom.css`,
+`package.json`, `.webhaste/templates/`, `.webhaste/site.config.json`,
+`.webhaste/nav.json`, `.webhaste/pages.json` — is copied in once (or
+hand-authored) and safe to edit freely. JSON config files aren't validated
+on load, so double-check they stay valid; a broken file falls back to
+defaults silently.
 
 ## License
 

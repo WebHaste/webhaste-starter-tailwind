@@ -165,9 +165,16 @@ project that doesn't already have it unless the user explicitly asks.
   `brand`, `ink`, `muted`, `surface`, etc.), a `@layer components` block
   with a few reusable button classes (`wh-btn`, `wh-btn-primary`,
   `wh-btn-outline`, `wh-btn-soft` — stand-ins for what would have been
-  Bootstrap's `btn`/`btn-primary`/etc.), plus plain hand-written CSS.
-- **`scripts/styles.css`** is generated from it — never hand-edit that
-  file, only `tailwind-input.css`. After editing, run:
+  Bootstrap's `btn`/`btn-primary`/etc.), plus some hand-written CSS carried
+  over from before this site had a `custom.css` (below) to put it in.
+- **`scripts/custom.css`** is where *new* hand-written CSS classes belong —
+  a plain, non-generated stylesheet, not run through Tailwind at all.
+  `template.html` links it right after `scripts/styles.css`, so it loads
+  second and can override a generated utility class if needed. Prefer this
+  over adding more plain CSS into `tailwind-input.css`.
+- **`scripts/styles.css`** is generated from `tailwind-input.css` — never
+  hand-edit that file, only `tailwind-input.css` (or, for new hand-written
+  classes, `scripts/custom.css` instead). After editing, run:
   ```
   npm run build:css     # one-off compile
   npm run watch:css     # recompiles on every save
@@ -230,7 +237,9 @@ way to render a page outside the extension itself.
   not something to investigate or hand-fix.
 - `scripts/styles.css` — compiled from `tailwind-input.css` by
   `npm run build:css`/`watch:css`, see "Tailwind build step" above. Edit
-  `tailwind-input.css`, never this file.
+  `tailwind-input.css`, never this file. Its sibling `scripts/custom.css`
+  is the opposite — plain hand-written CSS, never touched by the build,
+  safe (expected, even) to hand-edit.
 - `.webhaste/compose.js`, `.webhaste/compose-core.js`, and
   `.webhaste/block-library.md` — regenerated every time the project
   folder is opened in the editor, so hand edits won't stick. (Unlike this

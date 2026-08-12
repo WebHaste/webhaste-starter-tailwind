@@ -31,8 +31,15 @@
          iframe's CSP and never renders, see tailwind-input.css for details. -->
     <link href="/scripts/styles.css" rel="stylesheet" type="text/css" />
 
-    <!-- template-specific js -->
-    <script src="/scripts/scripts.js"></script>
+    <!-- Any template-sepecific CSS should be entered in custom.css so not to
+     conflict with the auto-generated library above -->
+    <link href="/scripts/custom.css" rel="stylesheet" type="text/css" />
+
+    <!-- template-specific js — defer so #mobile-menu-button/#mobile-menu
+         (and #emailForm) exist in the DOM by the time scripts.js runs;
+         without it this <script> (in <head>, no defer) executes before
+         <body> is parsed and every getElementById() below returns null -->
+    <script src="/scripts/scripts.js" defer></script>
 
 </head>
 
@@ -53,8 +60,9 @@
         </div>
         
         <div class="-mr-2 flex md:hidden">
-          <!-- Mobile menu button -->
-          <button type="button" command="--toggle" commandfor="mobile-menu" class="relative inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500">
+          <!-- Mobile menu button — toggled by scripts.js, not a native
+               control; see #mobile-menu-button there -->
+          <button type="button" id="mobile-menu-button" aria-controls="mobile-menu" aria-expanded="false" class="relative inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500">
             <span class="absolute -inset-0.5"></span>
             <span class="sr-only">Open main menu</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" data-slot="icon" aria-hidden="true" class="size-6 in-aria-expanded:hidden">
@@ -68,11 +76,11 @@
       </div>
     </div>
 
-    <el-disclosure id="mobile-menu" hidden class="block md:hidden">
+    <div id="mobile-menu" hidden class="md:hidden">
       <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
         {{NAV:header}}
       </div>
-    </el-disclosure>
+    </div>
 
   </nav>
 

@@ -5,6 +5,6 @@
   "activeTemplate": "template.html",
   "cssFramework": "tailwind",
   "language": "en",
-  "deployDirectory": "dist",
-  "deploymentTarget": "local"
+  "deploymentTarget": "local",
+  "deployDirectory": "dist"
 }
