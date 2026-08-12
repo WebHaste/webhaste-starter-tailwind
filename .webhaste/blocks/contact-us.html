@@ -1,0 +1,46 @@
+<section class="section bg-white" id="contact">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto mb-5 max-w-2xl text-center">
+            <h3 class="mb-3 text-2xl font-bold text-ink">Contact Us</h3>
+            <p class="text-sm text-muted">Note: using this form requires setting the recipient and
+                subject information in scripts.js</p>
+        </div>
+        <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
+            <div class="lg:col-span-7">
+                <form method="post" name="emailForm" class="space-y-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="name" class="mb-2 block text-sm font-semibold text-ink">Name*</label>
+                            <input name="name" id="name" type="text"
+                                class="h-10 w-full rounded border border-muted/30 bg-ink/[0.01] px-3 text-sm placeholder:text-muted focus:border-brand focus:outline-none"
+                                placeholder="Your name...">
+                        </div>
+                        <div>
+                            <label for="email" class="mb-2 block text-sm font-semibold text-ink">Email Address*</label>
+                            <input name="email" id="email" type="email"
+                                class="h-10 w-full rounded border border-muted/30 bg-ink/[0.01] px-3 text-sm placeholder:text-muted focus:border-brand focus:outline-none"
+                                placeholder="Your email...">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="comments" class="mb-2 block text-sm font-semibold text-ink">Message*</label>
+                        <textarea name="comments" id="comments" rows="4"
+                            class="w-full rounded border border-muted/30 bg-ink/[0.01] px-3 py-2 text-sm placeholder:text-muted focus:border-brand focus:outline-none"
+                            placeholder="Your message..."></textarea>
+                    </div>
+                    <button type="submit" id="submit" name="send" class="wh-btn wh-btn-primary">Send Message
+                        <i class="fa-solid fa-envelope"></i></button>
+                </form>
+            </div>
+            <div class="lg:col-span-5">
+                <div class="space-y-2 text-muted">
+                    <p><i class="fa-solid fa-envelope"></i> : <span>support@website.com</span></p>
+                    <p><i class="fa-solid fa-link"></i> : <span>www.website.com</span></p>
+                    <p><i class="fa-solid fa-phone"></i> : <span>800-843-2827</span></p>
+                    <p><i class="fa-solid fa-clock"></i> : <span>8:00 AM - 5:00PM</span></p>
+                    <p><i class="fa-solid fa-map-location-dot"></i> : <span>1060 W Addison St, Chicago, IL 60613</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

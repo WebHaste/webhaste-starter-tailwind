@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+
+<head>
+    <meta charset="utf-8" />
+    <title>{{TITLE}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{META_DESCRIPTION}}" />
+
+    <!-- favicon -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/elements/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/elements/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/elements/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/elements/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/elements/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/elements/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/elements/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/elements/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/elements/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="/elements/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/elements/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/elements/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/elements/favicon-16x16.png">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/elements/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Tailwind is precompiled to scripts/styles.css by `npm run build:css`
+         (source: tailwind-input.css) rather than loaded via the browser/JIT
+         CDN script — that script tag gets blocked by the WebHaste preview
+         iframe's CSP and never renders, see tailwind-input.css for details. -->
+    <link href="/scripts/styles.css" rel="stylesheet" type="text/css" />
+
+    <!-- template-specific js -->
+    <script src="/scripts/scripts.js"></script>
+
+</head>
+
+<body>
+
+    <nav class="bg-white border-b border-gray-200">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center justify-between">
+        <div class="flex items-center">
+          <div class="shrink-0">
+            <img src="/assets/logo.png" alt="Site logo in header" style="max-width: 200px; height: auto;" />
+          </div>
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-4">
+              {{NAV:header}}
+            </div>
+          </div>
+        </div>
+        
+        <div class="-mr-2 flex md:hidden">
+          <!-- Mobile menu button -->
+          <button type="button" command="--toggle" commandfor="mobile-menu" class="relative inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500">
+            <span class="absolute -inset-0.5"></span>
+            <span class="sr-only">Open main menu</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" data-slot="icon" aria-hidden="true" class="size-6 in-aria-expanded:hidden">
+              <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" data-slot="icon" aria-hidden="true" class="size-6 not-in-aria-expanded:hidden">
+              <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <el-disclosure id="mobile-menu" hidden class="block md:hidden">
+      <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+        {{NAV:header}}
+      </div>
+    </el-disclosure>
+
+  </nav>
+
+    <main>
+        {{CONTENT}}
+    </main>
+
+    <section class="footer">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
+                <div class="lg:col-span-4">
+                    <img src="/assets/logo-footer.png" alt="Site logo in footer" class="h-auto max-w-[200px]">
+                    <p class="my-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                        Aenean id blandit ex. Aenean ac ornare purus. Nulla eu pretium lorem, at scelerisque nunc.
+                        Nulla lacus sapien, laoreet gravida laoreet in, lobortis in eros.</p>
+                    <ul class="flex list-none gap-4 p-0">
+                        <li>
+                            <a href="#" class="footer-social-icon facebook">
+                                <i class="fa-brands fa-facebook-f"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="footer-social-icon twitter">
+                                <i class="fa-brands fa-x-twitter"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="footer-social-icon instagram">
+                                <i class="fa-brands fa-instagram"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
+                    {{NAV:footer}}
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="post-footer py-3">
+        <div class="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+            <p class="mb-0"><a href="https://maps.app.goo.gl/KsLBLSWLRWeC32KR9" target="_blank">1060 W Addison St, Chicago, IL 60613</a> &bull; <a href="tel:+18008432827">800-843-2827</a>.</p>
+            <p class="mb-0">&copy; {{YEAR}} {{SITE_NAME}}. All rights reserved.</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

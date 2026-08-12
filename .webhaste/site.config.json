@@ -1,0 +1,10 @@
+{
+  "siteName": "My Site",
+  "domain": "",
+  "paragraphMode": "p",
+  "activeTemplate": "template.html",
+  "cssFramework": "tailwind",
+  "language": "en",
+  "deployDirectory": "dist",
+  "deploymentTarget": "local"
+}

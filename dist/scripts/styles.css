@@ -1,0 +1,294 @@
+@import url("https://fonts.googleapis.com/css2?family=Muli:ital,wght@0,300;0,600;0,700;0,800;1,400;1,500&family=Quicksand:wght@400;500;600;700&display=swap");
+@import url('https://use.fontawesome.com/releases/v7.2.0/css/all.css');
+
+:root {
+    /* OVERRIDE BOOTSTRAP DEFAULTS */
+  --bs-primary: #5a4fdc;
+  --bs-primary-rgb: 90, 79, 220;
+  --bs-secondary: #6c757d;
+  --bs-secondary-rgb: 108, 117, 125;
+  --bs-success: #14cf9f;
+  --bs-success-rgb: 20, 207, 159;
+  --bs-info: #4fccdc;
+  --bs-info-rgb: 79, 204, 220;
+  --bs-warning: #ffbb13;
+  --bs-warning-rgb: 255, 187, 19;
+  --bs-danger: #f43958;
+  --bs-danger-rgb: 244, 57, 88;
+  --bs-dark: #3b3950;
+  --bs-dark-rgb: 59, 57, 80;
+  --bs-muted: #9e9cb9;
+  --bs-muted-rgb: 158, 156, 185;
+  --bs-light: #fbfafd;
+  --bs-light-rgb: 251, 250, 253;
+  --bs-body-bg: #ffffff;
+  --bs-body-bg-rgb: 255, 255, 255;
+  --bs-black: #000;
+  --bs-black-rgb: 0, 0, 0;
+  --bs-white: #fff;
+  --bs-white-rgb: 255, 255, 255;
+  --bs-body-color: #3b3950;
+  --bs-body-bg: #fff;
+  --bs-secondary-bg: #fff;
+  --bs-white: #f8f9fa;
+  --bs-footer-bg: #292838;
+  --bs-footer-alt-bg: #23222f;
+  --bs-form-bg: #edeff1;
+  --bs-bg-white: #fff;
+  --bs-text-color: #4c5667;
+
+  /* OTHER VARIABLES */
+
+}
+
+
+
+/* OVERALL CLASSES */
+
+body {
+    font-family: "Quicksand", sans-serif;
+    color: var(--bs-dark);
+    font-weight: 500;
+}
+
+a {
+  text-decoration: none !important;
+  outline: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Muli", sans-serif;
+  font-weight: 700;
+}
+
+.row > * {
+  position: relative;
+}
+
+.section {
+    padding-top: 80px;
+    padding-bottom: 80px;
+    position: relative;
+}
+
+.size12 {font-size: 12px;}
+.size14 {font-size: 14px;}
+.size16 {font-size: 16px;}
+.size18 {font-size: 18px;}
+.size20 {font-size: 20px;}
+.size22 {font-size: 22px;}
+.size24 {font-size: 24px;}
+.size26 {font-size: 26px;}
+.size28 {font-size: 28px;}
+.size30 {font-size: 30px;}
+.size32 {font-size: 32px;}
+.size34 {font-size: 34px;}
+.size36 {font-size: 36px;}
+
+
+/* HEADER AND NAV */
+.cs-menu-header {
+    margin-left: auto;
+}
+
+
+/* HEADER HERO */
+
+.header-hero {
+  padding: 260px 0 280px;
+  background-image: url(/assets/workspace.jpg);
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 100%;
+}
+.header-hero .hero-title {
+  font-size: 48px;
+}
+
+
+/* PRICING BOX */
+
+.pricing-box {
+  box-shadow: 0 3px 12px rgba(6, 11, 47, 0.06);
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bs-secondary-bg);
+}
+.pricing-box .pricing-icon-bg {
+  background: rgba(90, 79, 220, 0.12);
+  color: #5a4fdc;
+  display: block;
+  height: 80px;
+  width: 80px;
+  font-size: 48px;
+  line-height: 1.6em;
+  margin: 0 auto;
+  border-radius: 20%;
+  box-shadow: 0 0 0 7px rgba(90, 79, 220, 0.03);
+  transition: all 0.5s;
+}
+.pricing-box .pricing-item li {
+  padding: 10px 0;
+}
+.pricing-box .pr-btn {
+  position: relative;
+  z-index: 1;
+}
+.pricing-box:hover .pricing-icon-bg, .pricing-box.active .pricing-icon-bg {
+  background-color: #5a4fdc;
+  box-shadow: 0 0 0 7px rgba(90, 79, 220, 0.06);
+  color: #fff;
+  border-radius: 20%;
+}
+
+
+/* CONTACT US BLOCK */
+
+.form-control:focus {
+  box-shadow: none;
+  background-color: #fbfafd;
+  border-color: #ced4da;
+}
+
+textarea.form-control {
+  height: auto !important;
+}
+
+.custom-form .form-group {
+  margin-bottom: 1rem;
+}
+.custom-form label {
+  margin-bottom: 10px;
+}
+.custom-form .alert-warning {
+  padding: 10px;
+}
+
+.form-control {
+  padding: 8px 10px;
+  font-size: 14px;
+  height: 40px;
+  background-color: rgba(59, 57, 80, 0.01);
+  border: 1px solid rgba(158, 156, 185, 0.3);
+}
+.form-control::-moz-placeholder {
+  color: #b0aec6;
+  font-size: 14px;
+}
+.form-control::placeholder {
+  color: #b0aec6;
+  font-size: 14px;
+}
+
+.contact-loader {
+  display: none;
+}
+
+
+/* FOOTER */
+
+.footer {
+    background: var(--bs-footer-bg);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.footer {
+  background: var(--bs-footer-bg);
+  padding: 80px 0 40px;
+}
+
+.footer-social-icon {
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.5s;
+}
+
+.footer-social-icon:hover,
+.footer-social-icon:focus {
+  color: #fff;
+}
+
+.cs-menu-footer ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.cs-menu-footer ul li {
+    padding: 6px 0;
+}
+
+.cs-menu-footer h6 {
+    text-transform: uppercase;
+    color: var(--bs-white);
+}
+
+.cs-menu-footer a {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  transition: all 0.5s;
+}
+
+.cs-menu-footer a:hover,
+.cs-menu-footer a:focus {
+  color: #fff;
+  margin-left: 5px;
+}
+
+.post-footer {
+    background: var(--bs-dark);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.post-footer a {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.post-footer a:hover,
+.post-footer a:focus {
+    color: rgba(255, 255, 255, 1);
+}
+
+
+/*  BOOTSTRAP RESPONSIVE BREAKPOINTS
+X-Small devices (portrait phones, less than 576px)
+No media query for `xs` since this is the default in Bootstrap */
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) { 
+    
+
+}
+
+
+/* Medium devices (tablets, 768px and up)*/
+@media (min-width: 768px) {
+    
+
+}
+
+
+/* Large devices (desktops, 992px and up)*/
+@media (min-width: 992px) {
+    
+
+}
+
+
+/* X-Large devices (large desktops, 1200px and up)*/
+@media (min-width: 1200px) {
+    
+
+}
+
+
+/* XX-Large devices (larger desktops, 1400px and up)*/
+@media (min-width: 1400px) {
+    
+
+}

@@ -1,0 +1,204 @@
+@import url("https://fonts.googleapis.com/css2?family=Muli:ital,wght@0,300;0,600;0,700;0,800;1,400;1,500&family=Quicksand:wght@400;500;600;700&display=swap");
+@import url('https://use.fontawesome.com/releases/v7.2.0/css/all.css');
+@import "tailwindcss";
+
+/* .webhaste/ is a dot-directory, which Tailwind's automatic content
+   detection skips by default — the template and blocks that actually use
+   utility classes live there, so they need to be listed explicitly or
+   their classes never make it into the compiled output. */
+@source "./.webhaste/templates";
+@source "./.webhaste/blocks";
+
+/* Brand palette, carried over from the old Bootstrap starter's --bs-*
+   overrides. Defining these as Tailwind theme colors (rather than plain
+   :root custom properties) means Tailwind auto-generates bg-, text-, and
+   border- utilities for each one — e.g. --color-brand below gives you
+   bg-brand, text-brand, border-brand, bg-brand/10, etc. for free. */
+@theme {
+  --color-brand: #5a4fdc;
+  --color-brand-dark: #4a3fc2;
+  --color-ink: #3b3950;
+  --color-muted: #9e9cb9;
+  --color-surface: #fbfafd;
+  --color-surface-alt: #f3f2fb;
+  --color-footer: #292838;
+}
+
+/* Small reusable button variants standing in for Bootstrap's btn/btn-primary/
+   btn-outline-primary/btn-soft-primary — used as e.g. class="wh-btn
+   wh-btn-primary" so block markup keeps the same two-class pattern it had
+   under Bootstrap. */
+@layer components {
+  .wh-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded px-5 py-2.5 text-sm font-semibold transition-colors duration-200;
+  }
+  .wh-btn-primary {
+    @apply bg-brand text-white hover:bg-brand-dark;
+  }
+  .wh-btn-outline {
+    @apply border border-brand text-brand hover:bg-brand hover:text-white;
+  }
+  .wh-btn-soft {
+    @apply bg-brand/10 text-brand hover:bg-brand/20;
+  }
+}
+
+/* OVERALL CLASSES */
+
+body {
+    font-family: "Quicksand", sans-serif;
+    color: var(--color-ink);
+    font-weight: 500;
+}
+
+a {
+  text-decoration: none !important;
+  outline: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Muli", sans-serif;
+  font-weight: 700;
+}
+
+.section {
+    padding-top: 80px;
+    padding-bottom: 80px;
+    position: relative;
+}
+
+.size12 {font-size: 12px;}
+.size14 {font-size: 14px;}
+.size16 {font-size: 16px;}
+.size18 {font-size: 18px;}
+.size20 {font-size: 20px;}
+.size22 {font-size: 22px;}
+.size24 {font-size: 24px;}
+.size26 {font-size: 26px;}
+.size28 {font-size: 28px;}
+.size30 {font-size: 30px;}
+.size32 {font-size: 32px;}
+.size34 {font-size: 34px;}
+.size36 {font-size: 36px;}
+
+
+/* HEADER AND NAV */
+.cs-menu-header {
+    margin-left: auto;
+}
+
+
+/* HEADER HERO */
+
+.header-hero {
+  padding: 260px 0 280px;
+  background-image: url(/assets/workspace.jpg);
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 100%;
+}
+.header-hero .hero-title {
+  font-size: 48px;
+}
+
+
+/* PRICING BOX */
+
+.pricing-box {
+  box-shadow: 0 3px 12px rgba(6, 11, 47, 0.06);
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+  background-color: #fff;
+}
+.pricing-box .pricing-icon-bg {
+  background: rgba(90, 79, 220, 0.12);
+  color: #5a4fdc;
+  display: block;
+  height: 80px;
+  width: 80px;
+  font-size: 48px;
+  line-height: 1.6em;
+  margin: 0 auto;
+  border-radius: 20%;
+  box-shadow: 0 0 0 7px rgba(90, 79, 220, 0.03);
+  transition: all 0.5s;
+}
+.pricing-box .pricing-item li {
+  padding: 10px 0;
+}
+.pricing-box .pr-btn {
+  position: relative;
+  z-index: 1;
+}
+.pricing-box:hover .pricing-icon-bg, .pricing-box.active .pricing-icon-bg {
+  background-color: #5a4fdc;
+  box-shadow: 0 0 0 7px rgba(90, 79, 220, 0.06);
+  color: #fff;
+  border-radius: 20%;
+}
+
+
+/* FOOTER */
+
+.footer {
+  background: var(--color-footer);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 80px 0 40px;
+}
+
+.footer-social-icon {
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.5s;
+}
+
+.footer-social-icon:hover,
+.footer-social-icon:focus {
+  color: #fff;
+}
+
+.cs-menu-footer ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.cs-menu-footer ul li {
+    padding: 6px 0;
+}
+
+.cs-menu-footer h6 {
+    text-transform: uppercase;
+    color: #f8f9fa;
+}
+
+.cs-menu-footer a {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  transition: all 0.5s;
+}
+
+.cs-menu-footer a:hover,
+.cs-menu-footer a:focus {
+  color: #fff;
+  margin-left: 5px;
+}
+
+.post-footer {
+    background: var(--color-ink);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.post-footer a {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.post-footer a:hover,
+.post-footer a:focus {
+    color: rgba(255, 255, 255, 1);
+}

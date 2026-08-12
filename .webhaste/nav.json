@@ -1,0 +1,93 @@
+{
+  "menus": {
+    "header": [
+      {
+        "label": "Home",
+        "href": "/index.html"
+      },
+      {
+        "label": "About",
+        "href": "/about/index.html",
+        "children": [
+          {
+            "label": "Mission",
+            "href": "/about/mission.html"
+          },
+          {
+            "label": "History",
+            "href": "/about/history.html"
+          },
+          {
+            "label": "Press",
+            "href": "/about/press.html"
+          }
+        ]
+      },
+      {
+        "label": "Customers",
+        "href": "/customers/index.html",
+        "children": [
+          {
+            "label": "Industries",
+            "href": "/customers/industries.html"
+          },
+          {
+            "label": "Case Studies",
+            "href": "/customers/case-studies.html"
+          }
+        ]
+      }
+    ],
+    "footer": [
+      {
+        "label": "About",
+        "href": "/about/index.html",
+        "children": [
+          {
+            "label": "Mission",
+            "href": "/about/mission.html"
+          },
+          {
+            "label": "History",
+            "href": "/about/history.html"
+          },
+          {
+            "label": "Press",
+            "href": "/about/press.html"
+          }
+        ]
+      },
+      {
+        "label": "Customers",
+        "href": "/customers/index.html",
+        "children": [
+          {
+            "label": "Industries",
+            "href": "/customers/industries.html"
+          },
+          {
+            "label": "Case Studies",
+            "href": "/customers/case-studies.html"
+          }
+        ]
+      },
+      {
+        "label": "Contact",
+        "href": "/contact-us.html",
+        "children": [
+          {
+            "label": "Service Area",
+            "href": "/service-area.html"
+          },
+          {
+            "label": "Location",
+            "href": "/location.html"
+          }
+        ]
+      }
+    ]
+  },
+  "layouts": {
+    "footer": "columns"
+  }
+}
