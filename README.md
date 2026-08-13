@@ -1,7 +1,7 @@
 # WebHaste Starter — Tailwind CSS
 
 A clean starter template for building a website with the
-[WebHaste](https://github.com/) browser extension. Clone this repo, open
+[WebHaste browser extension](https://chromewebstore.google.com/detail/webhaste/ofblooflocfdegjjpgjfbefnjmjmbapa) — also available on [GitHub](https://github.com/desttools/webhaste) — using the Tailwind CSS framework. Clone this repo, open
 the folder in the extension, and start editing — or fork it as the base for
 your own reusable template.
 
