@@ -41,6 +41,10 @@
          <body> is parsed and every getElementById() below returns null -->
     <script src="/scripts/scripts.js" defer></script>
 
+    <!-- site search — see README's "Site search" section -->
+    <script src="/scripts/lunr.min.js"></script>
+    <script src="/scripts/search.js"></script>
+
 </head>
 
 <body>
@@ -57,8 +61,12 @@
               {{NAV:header}}
             </div>
           </div>
+          <div class="hidden md:block relative ml-6" style="min-width:220px;">
+            <input type="search" id="cs-search-input" placeholder="Search..." autocomplete="off" class="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none">
+            <div id="cs-search-results" class="absolute right-0 mt-1 rounded-md border border-gray-200 bg-white shadow-lg" style="z-index:1050;"></div>
+          </div>
         </div>
-        
+
         <div class="-mr-2 flex md:hidden">
           <!-- Mobile menu button — toggled by scripts.js, not a native
                control; see #mobile-menu-button there -->

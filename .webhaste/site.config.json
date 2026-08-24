@@ -5,6 +5,7 @@
   "activeTemplate": "template.html",
   "cssFramework": "tailwind",
   "language": "en",
-  "deploymentTarget": "local",
-  "deployDirectory": "dist"
+  "deploymentTarget": "cloudflare",
+  "deployDirectory": "dist",
+  "projectId": "a73fff65-0925-4a08-afcc-27c3b2f3ea6d"
 }

@@ -167,3 +167,49 @@ h6 {
 .post-footer a:focus {
     color: rgba(255, 255, 255, 1);
 }
+
+
+/* SITE SEARCH — see README's "Site search" section */
+
+#cs-search-results:empty {
+    display: none;
+}
+
+#cs-search-results {
+    width: 200%;
+    max-width: calc(100vw - 2rem);
+}
+
+.cs-search-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.cs-search-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+}
+
+.cs-search-item:last-child {
+    border-bottom: none;
+}
+
+.cs-search-item a {
+    font-weight: 600;
+}
+
+.cs-search-item p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #555;
+}
+
+.cs-search-empty {
+    padding: 10px 14px;
+    margin: 0;
+    color: #555;
+}

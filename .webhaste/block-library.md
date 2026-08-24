@@ -72,8 +72,8 @@ _No `tailwind` markup yet for this block — shown disabled in the Blocks dialog
 ## Custom (`.webhaste/blocks/`)
 
 - **About** — `.webhaste/blocks/about.html`
+- **Articles** — `.webhaste/blocks/articles.html`
 - **Contact Us** — `.webhaste/blocks/contact-us.html`
 - **Cta** — `.webhaste/blocks/cta.html`
-- **Articles** — `.webhaste/blocks/articles.html`
 - **Header Hero** — `.webhaste/blocks/header-hero.html`
 - **Pricing Block** — `.webhaste/blocks/pricing-block.html`
