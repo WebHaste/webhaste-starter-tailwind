@@ -5,6 +5,13 @@ published through the WebHaste Chrome extension, not built with a
 bundler/framework of its own. A few things about the format aren't obvious
 from the files alone — read this before creating or editing pages.
 
+The same conventions are also available as the `building-webhaste-site`
+skill under `.claude/skills/` — a shorter workflow index plus topic-scoped
+reference files, for tooling that can load just the part it needs instead
+of this whole document. Both describe the same project; if they ever
+disagree, this file is the one more likely to have been hand-edited for
+this specific site.
+
 ## Page files are content fragments, not full HTML documents
 
 Every `*.html` file at the project root (e.g. `index.html`, `docs.html`) is
@@ -20,7 +27,10 @@ It also defines `{{TITLE}}`, `{{META_DESCRIPTION}}`, `{{NAV:<menu>}}`,
 `{{SITE_NAME}}`, `{{LANG}}`, and `{{YEAR}}` placeholders — check that file
 if you need to know what wraps every page (header/nav/footer). `{{LANG}}`
 fills the `<html lang="...">` attribute; see "Multi-language content"
-below for where its value comes from.
+below for where its value comes from. Any CSS framework
+`<link>`/`<script>` tags are NOT a placeholder — they're literal markup in
+the template's `<head>`, same as `scripts/styles.css`/`main.js`; WebHaste
+doesn't inject or manage them.
 
 ## Read `.webhaste/site.config.json` before writing markup
 
@@ -38,6 +48,14 @@ site and change over time. Check this file first:
   not bundled in the extension), so nothing would render in preview even
   though it'd work once actually published. See "Tailwind build step"
   below before touching CSS on this project.
+
+  The same "no CDN `<script>` in preview" limitation applies to icon
+  libraries (Bootstrap Icons, Font Awesome, etc.): prefer the **CSS +
+  webfont** `<link>` they offer over a JS "kit"/SVG-injection snippet
+  (e.g. Font Awesome's `kit.fontawesome.com/....js`) — the CSS form is
+  just a stylesheet and renders fine in WebHaste's preview, while the JS
+  form silently shows no icons while editing (it would still work once
+  published, but there's no way to tell that from preview alone).
 - `paragraphMode` — `p` or `div`. Matches how the visual editor's Enter key
   behaves; hand-written content should follow the same convention so it's
   consistent with what a human editing the same page would produce.
@@ -95,6 +113,49 @@ links to it. Two more files, both in `.webhaste/`:
   single Spanish-language page on an otherwise English site). Omitted key
   means "inherit the site default," same pattern as `status`.
 
+  A page entry can also carry `"template"` — a filename under
+  `.webhaste/templates/` overriding `site.config.json`'s `activeTemplate`
+  for just that page (e.g. every page under `blog/` using a
+  `blog-layout.html` that adds a byline/date block the rest of the site
+  doesn't have). Same "omitted key means inherit the site default" pattern
+  as `status`/`language` above; set from the Page Properties dialog's
+  Template dropdown, not something to hand-author unless you're also adding
+  the template file itself under `.webhaste/templates/`.
+
+  A page entry can also carry `"headCode"` — raw HTML/JS inserted verbatim
+  before `</head>` for just that page (set from the Page Properties
+  dialog's "Header code" field), for things a sitewide snippet in the
+  template can't cover — e.g. a Google Ads/Analytics *conversion* tag that
+  only applies to one page. For several/changing tags, prefer putting a
+  Google Tag Manager container snippet in the template instead and managing
+  tags in GTM's own UI, rather than hand-editing this field per page.
+
+## `assets/` and `scripts/` are flat — no subfolders
+
+Both directories are read one level deep only; WebHaste does not walk
+subdirectories when composing pages. A file at `assets/photo.jpg` works —
+`assets/uploads/2024/01/photo.jpg` does not. A nested file isn't just
+missed by the Assets dialog: it fails silently everywhere —
+
+- It won't render in the editor's live preview (shows as a broken
+  image/missing stylesheet, with no error explaining why).
+- It's excluded from Publish (Cloudflare/Netlify) and from Render to Local
+  Folder/Packaged, so the live site 404s on it — even though the file is
+  sitting right there in the project folder and looks fine in `git status`.
+
+This matters most when importing/converting an existing site (e.g. a
+WordPress export, which nests uploads as `wp-content/uploads/YYYY/MM/...`
+by convention): flatten every file straight into `assets/` (or `scripts/`
+for JS/CSS) and rewrite every `src`/`href` reference to match — don't
+preserve the source site's folder structure. Watch for filename collisions
+across what were previously separate folders (rename to disambiguate, e.g.
+`photo-2023.jpg` vs `photo-2024.jpg`), and for any stylesheet among the
+files that itself references sibling assets by relative path (e.g. an icon
+font's `@font-face` pointing at `../fonts/name.woff2`) — those internal
+paths need rewriting too once the file they're relative to moves.
+(Page files themselves don't have this restriction — `blog/post.html` is
+fine — this only applies to `assets/`/`scripts/`.)
+
 ## Multi-language content
 
 `{{LANG}}` in the layout template resolves per page as: this page's
@@ -122,6 +183,211 @@ produced.
 once with a permissive default (`User-agent: *` / `Allow: /`) and never
 regenerated — safe to hand-edit (e.g. adding `Disallow:` rules) same as any
 other file here.
+
+Neither is produced by the **Packaged** deployment target (Site Settings →
+Deployment Target) — a site rendered for opening straight from disk has no
+real domain or server, so a sitemap/robots file would serve no purpose there.
+
+## Site search
+
+`search-index.json` is generated automatically alongside `sitemap.xml` at
+publish/render time — same rules, don't hand-edit or create one at the
+project root. Each entry is built from a page's *raw* content (not the
+composed output, so template nav/header/footer text is never duplicated into
+every page's indexed text), plus its `pages.json` title/description.
+
+Two files are already scaffolded into `scripts/` for you — `search.js` (the
+search UI logic) and `lunr.min.js` (the search library it depends on) —
+but neither does anything until your template actually references them and
+includes a search box. Add to the layout template's `<head>`:
+
+```html
+<script src="/scripts/lunr.min.js"></script>
+<script src="/scripts/search.js"></script>
+```
+
+and a search box wherever you want one to appear:
+
+```html
+<input type="search" id="cs-search-input" placeholder="Search...">
+<div id="cs-search-results"></div>
+```
+
+`search.js` looks for those two element IDs specifically and wires itself up
+automatically — nothing else to configure, and a template that never adds
+them just doesn't load the index. Results render as
+`<ul class="cs-search-list"><li class="cs-search-item">` entries (or a
+`<p class="cs-search-empty">` when there are none) — unstyled by default, so
+add CSS for those classes the same way you would for any other `cs-*` class
+from a block or menu.
+
+Page Properties has three checkboxes independent of Draft status — a page
+with any of them checked still publishes normally, it's just left out of the
+file(s) named:
+
+- **Exclude from sitemap.xml** — leaves it out of `sitemap.xml`.
+- **Exclude from site search** — leaves it out of `search-index.json`.
+- **Hide from search engines (noindex)** — adds a real
+  `<meta name="robots" content="noindex">` tag to the page. Unlike the two
+  checkboxes above, which only control WebHaste's own generated files, this
+  is a genuine signal to crawlers.
+
+Search still works when the site is rendered with the **Packaged**
+deployment target (for handing off a site that has to open straight from
+disk, no server) — it just works differently under the hood. Chrome blocks
+`fetch()` of a local file under `file://` regardless of path, so instead of
+a separate `search-index.json` fetched at runtime, each page gets its own
+copy of the index embedded inline, with every result link already pointing
+at the right relative path for that page. Nothing about writing pages or
+using the search box changes — this is purely a render-time difference.
+
+## Lottie/JSON animations
+
+The Blocks dialog's "Lottie Animation" block wires an uploaded Lottie/
+Bodymovin `.json` export into a page via a `data-lottie-src="/assets/
+your-file.json"` attribute — same `assets/` upload path as an image, since
+the Assets dialog treats `.json` as a third asset kind alongside images and
+PDFs. Two files are already scaffolded into `scripts/` for you, same
+never-overwritten pattern as `search.js`/`lunr.min.js` above —
+`lottie.min.js` (the player library) and `lottie-init.js` (this site's glue
+that finds every `[data-lottie-src]` element on the page and plays it).
+Neither does anything until the template actually references both:
+
+```html
+<script src="/scripts/lottie.min.js"></script>
+<script src="/scripts/lottie-init.js"></script>
+```
+
+**The block only ever shows a static placeholder in the WebHaste editor** —
+in Visual view and in live Preview alike — never the real animation. This
+is deliberate, not a bug to chase: `scripts/*.js` can't execute inside the
+preview iframe at all (the same `script-src 'self'` restriction that
+already blocks a site's own `scripts/main.js` there), so there was never a
+way to render the actual animation short of a much larger CSP workaround.
+The real animation only appears on the published site, or a "Render to
+Local Folder"/"Packaged" build opened in a normal browser tab — check it
+there, not in WebHaste's own preview.
+
+Animations still work fully offline under the **Packaged** deployment
+target (no server, opened straight from disk) — same as site search: each
+page gets its referenced animation's actual JSON embedded inline instead of
+`lottie-init.js` fetching it, since `file://` pages can't fetch anything.
+Nothing to configure for this; it's automatic whenever a page has a Lottie
+block, same as the search embedding above.
+
+## Lists
+
+The Blocks dialog's "List: Links", "List: Directory", and "List: Table"
+blocks render an admin-managed list — set up from the toolbar's Site Admin
+→ 🗂️ Lists dialog (fields, sort order, optional pagination, and the
+entries themselves) — into a page. Each inserted block is a placeholder
+wired to one specific list via a `data-list-src="/lists/<slug>.json"`
+attribute (set from the block's own 🗂️ toolbar button, not hand-typed),
+plus `data-list-view="links"`, `"directory"`, or `"table"`.
+
+**"List: Table" is structurally different from the other two**: its
+placeholder *is* a real `<table>` element (with real `<thead>`/`<tbody>`
+inside), not a `<div>` — list.js only ever repopulates the head/body rows,
+never touches the `<table>` tag's own attributes. That's what makes the
+table's `class` genuinely yours to edit: it starts out as `class="table"`
+(Bootstrap 5) or `class="table-auto"` (Tailwind, **this site's default**)
+— that framework's own default table styling, picked automatically to
+match `cssFramework` — but it's plain markup in the block's source,
+editable in Code view exactly like any other block's classes (add
+`table-striped`, swap it for something else, or remove it entirely).
+There's no dedicated dialog for this one, the same way hand-tuning a
+block's wrapper classes elsewhere in this doc is "still a Code view edit"
+— the ⚙ cog only edits `<div>` wrappers, not a `<table>` itself.
+
+**A site's template must load `scripts/list.js` for a List block to
+render at all** — same never-auto-injected pattern as
+`search.js`/`lottie-init.js` above, and the single most common way this
+feature looks broken: the placeholder (icon + list name) is exactly what
+renders on the live, published site if this script tag is missing, not
+just a symptom you'd only see in the editor. Add it to the template's
+`<head>`:
+
+```html
+<script src="/scripts/list.js"></script>
+```
+
+Field types drive how a value renders, across all three placements: a
+`link` field becomes a real `<a href>` (its value supplies the destination
+— for "List: Links" specifically, it's also what makes the *whole entry*
+clickable, with every other non-image field's value as the link text), an
+`image` field becomes a real `<img src>`, and a `date`/`text` field renders
+as plain, human-readable text — a `date` value (stored as `yyyy-mm-dd`) is
+reformatted for display as e.g. "Sept. 28, 2026", never shown in its raw
+stored form. Every rendered field gets a `cs-list-field cs-list-field--
+<type>` class (plus `cs-list-item` on each entry's wrapper, and
+`cs-list--links`/`cs-list--directory` on the container) to style from
+site CSS, same `cs-*` convention as site search's result classes — except
+"List: Table", which renders plain `<th>`/`<td>` with no extra classes at
+all, since a real `<table>`'s own row/cell semantics are already what
+you'd style directly (a field's label becomes the `<th>` text, in field
+order; link/image fields still render as a real `<a>`/`<img>` inside their
+`<td>`, just without a wrapping class to hook).
+
+**Only lists actually placed on some page get published** — an admin can
+fill in a list's entries well before deciding where, or whether, to place
+it on a page, so an unreferenced list's data deliberately never gets
+copied out to a public `/lists/<slug>.json` URL at Publish/Render time.
+Placing a block, publishing, then later removing that block from every
+page stops that list from being republished on the *next* publish — it
+isn't retroactively deleted from a deployment that already shipped it.
+
+**The block only ever shows a static placeholder in the WebHaste editor**
+— in Visual view and in live Preview alike — same reasoning as the Lottie
+block above (`scripts/*.js` can't execute inside the preview iframe's
+`script-src 'self'` CSP). Check a real list's rendering on the published
+site, or a "Render to Local Folder"/"Packaged" build opened in a normal
+browser tab.
+
+Lists still work fully offline under the **Packaged** deployment target
+(no server, opened straight from disk) — same as site search and Lottie: a
+real `/lists/<slug>.json` file can't be `fetch()`'d under `file://`
+(blocked by CORS regardless of path form), so each page gets its
+referenced list's actual data embedded inline instead of `list.js`
+fetching it. Nothing to configure for this; it's automatic whenever a page
+has a List block.
+
+Pagination (when turned on for a list) is entirely client-side — there's
+no separate URL/page-number per page of results, by design, not as a
+current limitation: a generated static page per page-number would need
+its own SEO handling (a list's real "page 2" isn't a page anything should
+link to or index), and `sitemap.xml` already covers whatever real pages
+link into a list. The current page is tracked as a `?list_<slug>_page=N`
+query parameter (via `history.replaceState`, so it's still bookmarkable)
+rather than changing what's actually served. For "List: Table" specifically,
+the Previous/Next controls render as a sibling element right after the
+`</table>` rather than inside it — a `<div>` can never be a valid direct
+child of `<table>`, so there's nowhere inside the table itself for them to
+go.
+
+## Open Graph / Twitter Card tags are automatic
+
+Every page gets `og:title`, `og:description`, `og:type`, `og:site_name`,
+`og:url`, `twitter:card`, `twitter:title`, and `twitter:description`
+injected automatically at publish/render time, built from that same page's
+`pages.json` title/description — no placeholder to add to the template,
+nothing to opt into. `og:description`/`twitter:description` are simply
+omitted for a page with no meta description, and `og:url` is omitted
+entirely when `site.config.json` → `domain` is unset. There's no
+`og:image` — no per-page "social image" field exists yet. Don't hand-write
+your own `og:*`/`twitter:*` tags in a page's Header code field (see
+above) — they'd duplicate the auto-generated ones.
+
+## Schema Markup (Organization / LocalBusiness) is configured, not templated
+
+If `site.config.json` → `schemaMarkup` has a `type` and `name` set, a
+`<script type="application/ld+json">` tag describing the site as an
+Organization or LocalBusiness is injected automatically into `index.html`
+only — set via the extension's Site Settings dialog, not a template
+placeholder. Don't hand-write your own Organization/LocalBusiness JSON-LD in
+a page's Header code field (see above) — it would duplicate the
+auto-generated one. Header code is still the right place for schema types
+this feature doesn't cover (Article, Product, FAQPage, Event, etc.) or for
+schema on a page other than the homepage.
 
 ## Content blocks
 
@@ -216,12 +482,17 @@ This writes fully-composed pages (plus `assets/`/`scripts/`) into
 this rather than the real `dist/` (or whatever `deployDirectory` is set to)
 so you don't clobber the site owner's actual build output. Delete the
 scratch folder once you're done checking it; it's not meant to be committed.
-Run `node .webhaste/compose.js --help` for the full option list.
+Add `--packaged` to match what the **Packaged** deployment target produces
+instead (root-relative paths rewritten to `../`-relative ones, search data
+embedded per page, `sitemap.xml`/`robots.txt`/`404.html` omitted) — useful
+for checking a page opens correctly via `file://` without installing the
+extension. Run `node .webhaste/compose.js --help` for the full option list.
 
 `compose.js` copies whatever is already in `scripts/styles.css` — it does
-**not** run the Tailwind build. If you changed any class names, run
-`npm run build:css` first (see "Tailwind build step" above) or the preview
-you generate will be checking against stale CSS.
+**not** run the Tailwind build, with `--packaged` or without. If you
+changed any class names, run `npm run build:css` first (see "Tailwind
+build step" above) or the preview you generate will be checking against
+stale CSS.
 
 If Node isn't available in this environment, fall back to reasoning from
 the template's placeholders and this file's conventions — there's no other

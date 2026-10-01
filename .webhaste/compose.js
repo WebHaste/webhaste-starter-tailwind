@@ -4,10 +4,12 @@
  * compose.js — headless equivalent of the extension's "Render to Local
  * Folder" (editor.js: renderToLocalFolder()). Composes every *.html page at
  * a site's project root against its active template/nav/site config and
- * writes the result to a dist folder, plus copies of assets/ and scripts/
- * — no browser, no extension install, just Node. Built so an agent (or CI)
- * editing site files directly can check what actually ships, instead of
- * just guessing from the template placeholders.
+ * writes the result to a dist folder, plus copies of assets/, scripts/,
+ * and elements/, plus (for a real, non-packaged deploy) .webhaste/lists/*.json
+ * republished to a real /lists/ folder — no browser, no extension install,
+ * just Node. Built so an agent (or CI) editing site files directly can
+ * check what actually ships, instead of just guessing from the template
+ * placeholders.
  *
  * This file lives in two places, and works unmodified in both:
  *   1. this repo's own cli/compose.js — the extension's own dev-tool copy,
@@ -26,15 +28,23 @@
  * the extension would produce.
  *
  * Usage:
- *   node compose.js [siteDir] [--out outDir]
+ *   node compose.js [siteDir] [--out outDir] [--packaged]
  *
- *   siteDir  Project folder to compose. Must contain a .webhaste/ folder.
- *            Default: this site's own root when run from a scaffolded
- *            .webhaste/compose.js, otherwise the current directory.
- *   --out    Output folder, relative to siteDir (default: deployDirectory
- *            from .webhaste/site.config.json, or "dist"). Use this to
- *            render to a scratch folder instead of overwriting the site's
- *            real dist/ output.
+ *   siteDir     Project folder to compose. Must contain a .webhaste/ folder.
+ *               Default: this site's own root when run from a scaffolded
+ *               .webhaste/compose.js, otherwise the current directory.
+ *   --out       Output folder, relative to siteDir (default: deployDirectory
+ *               from .webhaste/site.config.json, or "dist"). Use this to
+ *               render to a scratch folder instead of overwriting the site's
+ *               real dist/ output.
+ *   --packaged  Headless equivalent of the extension's "Packaged" deployment
+ *               target: rewrites root-relative paths ("/about.html") to
+ *               "../"-relative ones so the output works when opened straight
+ *               from disk (file://), and embeds search data, Lottie
+ *               animation JSON, and List data per page instead of fetching
+ *               any of them at runtime (all blocked by CORS under file://).
+ *               sitemap.xml/robots.txt/404.html are omitted, since none are
+ *               meaningful without a real domain/server.
  *
  * Exits non-zero with an error if site.config.json/nav.json/pages.json
  * exist but fail to parse — unlike the browser extension, which silently
@@ -84,6 +94,8 @@ const DEFAULT_NAV = {
     footer: [{ label: "Contact", href: "/contact.html" }],
   },
 };
+
+const DEFAULT_REDIRECTS = { redirects: [] };
 
 // Same stripped-character set as sanitizeDeployDirectory() in editor.js.
 function sanitizeDeployDirectory(input) {
@@ -158,28 +170,34 @@ function collectHtmlFiles(dir, exclude, prefix = "") {
 function parseArgs(argv) {
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(
-      "Usage: node compose.js [siteDir] [--out outDir]\n\n" +
-        "  siteDir  Project folder to compose (default: this site's own root if\n" +
-        "           run from a scaffolded .webhaste/compose.js, else cwd)\n" +
-        "  --out    Output folder, relative to siteDir (default: deployDirectory\n" +
-        "           from .webhaste/site.config.json, or \"dist\")"
+      "Usage: node compose.js [siteDir] [--out outDir] [--packaged]\n\n" +
+        "  siteDir     Project folder to compose (default: this site's own root if\n" +
+        "              run from a scaffolded .webhaste/compose.js, else cwd)\n" +
+        "  --out       Output folder, relative to siteDir (default: deployDirectory\n" +
+        "              from .webhaste/site.config.json, or \"dist\")\n" +
+        "  --packaged  Render for opening straight from disk (file://) instead of a\n" +
+        "              server — rewrites root-relative paths, embeds search/Lottie/\n" +
+        "              List data per page, and omits sitemap.xml/robots.txt/404.html"
     );
     process.exit(0);
   }
   let siteDir = null;
   let outDir = null;
+  let packaged = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--out") {
       outDir = argv[++i];
+    } else if (argv[i] === "--packaged") {
+      packaged = true;
     } else if (!siteDir) {
       siteDir = argv[i];
     }
   }
-  return { siteDir: siteDir || scaffoldedSiteRoot || process.cwd(), outDir };
+  return { siteDir: siteDir || scaffoldedSiteRoot || process.cwd(), outDir, packaged };
 }
 
 function main() {
-  const { siteDir, outDir } = parseArgs(process.argv.slice(2));
+  const { siteDir, outDir, packaged } = parseArgs(process.argv.slice(2));
   const root = path.resolve(siteDir);
   const cfgDir = path.join(root, ".webhaste");
 
@@ -191,15 +209,25 @@ function main() {
   const config = readJSON(path.join(cfgDir, "site.config.json"), DEFAULT_CONFIG);
   const navData = readJSON(path.join(cfgDir, "nav.json"), DEFAULT_NAV);
   const pagesData = readJSON(path.join(cfgDir, "pages.json"), {});
+  const redirectsData = readJSON(path.join(cfgDir, "redirects.json"), DEFAULT_REDIRECTS);
 
-  let templateText = null;
-  if (config.activeTemplate) {
-    const templatePath = path.join(cfgDir, "templates", config.activeTemplate);
+  // A page's own pages.json "template" field (set via the extension's Page
+  // Properties dialog) overrides config.activeTemplate for just that page —
+  // see getTemplateText()'s comment in editor.js. Cached by filename since
+  // multiple pages commonly share the same override (e.g. every post under
+  // blog/ using a "blog-layout.html").
+  const templateCache = new Map();
+  function loadTemplateText(templateName, forPage) {
+    if (!templateName) return null;
+    if (templateCache.has(templateName)) return templateCache.get(templateName);
+    const templatePath = path.join(cfgDir, "templates", templateName);
     if (!fs.existsSync(templatePath)) {
-      console.error(`activeTemplate "${config.activeTemplate}" not found at ${templatePath}`);
+      console.error(`Template "${templateName}" (used by ${forPage}) not found at ${templatePath}`);
       process.exit(1);
     }
-    templateText = fs.readFileSync(templatePath, "utf8");
+    const text = fs.readFileSync(templatePath, "utf8");
+    templateCache.set(templateName, text);
+    return text;
   }
 
   const distName = sanitizeDeployDirectory(outDir || config.deployDirectory);
@@ -216,62 +244,196 @@ function main() {
     (relPath) => !WebhasteCompose.isDraftPage(pagesData[relPath])
   );
 
+  // Pass 1: read + compose every page, but don't write yet — search-index.json
+  // (and, for --packaged, the per-page embedded index) needs every page's raw
+  // content before any page can be written.
   const pageEntries = [];
   for (const relPath of pageFiles) {
     const srcPath = path.join(root, relPath);
     const rawContent = fs.readFileSync(srcPath, "utf8");
+    const templateName = (pagesData[relPath] && pagesData[relPath].template) || config.activeTemplate;
     const composed = WebhasteCompose.composePage({
-      templateText,
+      templateText: loadTemplateText(templateName, relPath),
       rawContent,
       title: relPath,
       config,
       navData,
       pagesData,
     });
-    const dest = path.join(distDir, relPath);
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, composed);
     pageEntries.push({
       relPath,
       lastmod: fs.statSync(srcPath).mtime.toISOString().slice(0, 10),
       rawContent,
+      composed,
     });
+  }
+
+  // sitemap.xml — regenerated every run from the current page list, same as
+  // a real Publish/Render would. buildSitemap() returns null when no domain
+  // is configured, since a sitemap of host-less URLs is meaningless. Skipped
+  // entirely for --packaged: a sitemap only makes sense for a real
+  // domain/server, neither of which a file:// copy has.
+  const sitemapEntries = pageEntries.map(({ relPath, lastmod }) => ({ path: relPath, lastmod }));
+  const sitemap = !packaged && WebhasteCompose.buildSitemap({ pageEntries: sitemapEntries, pagesData, config });
+  if (sitemap) fs.writeFileSync(path.join(distDir, "sitemap.xml"), sitemap);
+
+  // search-index.json content — keyed off each page's raw pre-composition
+  // content (see buildSearchIndex()'s comment in compose-core.js for why:
+  // composed output would duplicate nav/footer chrome into every page's
+  // indexed text). For --packaged this is embedded per page below instead of
+  // written as a separate file (fetch() of a local file is blocked by CORS
+  // under file://, regardless of path form).
+  const searchIndexEntries = pageEntries.map(({ relPath, lastmod, rawContent }) => ({
+    path: relPath,
+    lastmod,
+    rawContent,
+  }));
+  const searchIndexJson = WebhasteCompose.buildSearchIndex({ pageEntries: searchIndexEntries, pagesData });
+  const searchEntries = searchIndexJson ? JSON.parse(searchIndexJson) : null;
+  if (!packaged && searchIndexJson) fs.writeFileSync(path.join(distDir, "search-index.json"), searchIndexJson);
+
+  // robots.txt — a real, hand-editable project-root file (see ensureScaffold()
+  // in editor.js), copied through untouched rather than regenerated. Skipped
+  // for --packaged, same reasoning as sitemap.xml above.
+  const robotsPath = path.join(root, "robots.txt");
+  const hasRobots = !packaged && fs.existsSync(robotsPath);
+  if (hasRobots) fs.copyFileSync(robotsPath, path.join(distDir, "robots.txt"));
+
+  // _redirects — see buildRedirectsFile()'s comment in compose-core.js for
+  // why this is the one generated file shared verbatim by both Cloudflare
+  // Pages and Netlify, and why it's skipped for --packaged.
+  const redirectsFile = !packaged && WebhasteCompose.buildRedirectsFile(redirectsData.redirects);
+  if (redirectsFile) fs.writeFileSync(path.join(distDir, "_redirects"), redirectsFile);
+
+  // Pass 2: write each page, applying the packaged rewrite/embed if requested.
+  let writtenPageCount = 0;
+  for (const { relPath, composed } of pageEntries) {
+    // 404.html is a "full document" (isFullDocument()) that Cloudflare/
+    // Netlify serve directly for unmatched paths — meaningless (and
+    // unreachable) for a copy opened straight from disk.
+    if (packaged && relPath.toLowerCase() === "404.html") continue;
+    let out = composed;
+    if (packaged) {
+      const depth = relPath.split("/").length - 1;
+      // Found on the pre-rewrite content, while every data-lottie-src is
+      // still the plain "/assets/name.json" form — see findLottieSrcs()'s
+      // comment in compose-core.js for why that matters below.
+      const lottieSrcs = WebhasteCompose.findLottieSrcs(composed);
+      out = WebhasteCompose.rewriteRootRelativePaths(out, depth);
+      if (searchEntries && out.includes("search.js")) {
+        const pageIndex = searchEntries.map((entry) => ({
+          ...entry,
+          url: WebhasteCompose.relativizeRootPath(entry.url, depth),
+        }));
+        out = out.replace(
+          /<head[^>]*>/i,
+          (match) => `${match}\n<script>window.CS_SEARCH_INDEX = ${JSON.stringify(pageIndex)};</script>`
+        );
+      }
+      if (lottieSrcs.length) {
+        // Same fetch()-blocked-under-file:// reasoning as the search embed
+        // above — embed each referenced animation's actual JSON so
+        // lottie-init.js can use it directly instead of lottie-web's own
+        // path-based fetch. A src whose asset is missing, or isn't valid
+        // JSON, is silently left out — lottie-init.js falls back to its
+        // normal path/fetch for that one, which fails the same way it
+        // would have without this embedding at all.
+        const dataBySrc = {};
+        for (const src of lottieSrcs) {
+          const assetName = src.replace(/^\/assets\//, "");
+          try {
+            const text = fs.readFileSync(path.join(root, "assets", assetName), "utf8");
+            dataBySrc[WebhasteCompose.relativizeRootPath(src, depth)] = JSON.parse(text);
+          } catch {
+            // Missing file or invalid JSON — leave it out, see comment above.
+          }
+        }
+        const lottieScript = WebhasteCompose.buildLottieDataScript(dataBySrc);
+        if (lottieScript) {
+          out = out.replace(/<head[^>]*>/i, (match) => `${match}\n${lottieScript}`);
+        }
+      }
+      // Same fetch()-blocked-under-file:// reasoning as the search/Lottie
+      // embeds above — embed each referenced list's actual JSON so list.js
+      // can use it directly instead of its own fetch(). A src whose list
+      // is missing, or isn't valid JSON, is silently left out — list.js
+      // falls back to its normal fetch for that one, which fails the same
+      // way it would have without this embedding (leaving that block's
+      // placeholder in place).
+      const listSrcs = WebhasteCompose.findListSrcs(composed);
+      if (listSrcs.length) {
+        const listDataBySrc = {};
+        for (const src of listSrcs) {
+          const match = /^\/lists\/([^/]+)\.json$/.exec(src);
+          if (!match) continue;
+          try {
+            const text = fs.readFileSync(path.join(cfgDir, "lists", `${match[1]}.json`), "utf8");
+            listDataBySrc[WebhasteCompose.relativizeRootPath(src, depth)] = JSON.parse(text);
+          } catch {
+            // Missing file or invalid JSON — leave it out, see comment above.
+          }
+        }
+        const listScript = WebhasteCompose.buildListDataScript(listDataBySrc);
+        if (listScript) {
+          out = out.replace(/<head[^>]*>/i, (match) => `${match}\n${listScript}`);
+        }
+      }
+    }
+    const dest = path.join(distDir, relPath);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, out);
+    writtenPageCount++;
   }
 
   const assetCount = copyDirRecursive(path.join(root, "assets"), path.join(distDir, "assets"));
   const scriptCount = copyDirRecursive(path.join(root, "scripts"), path.join(distDir, "scripts"));
   const elementCount = copyDirRecursive(path.join(root, "elements"), path.join(distDir, "elements"));
+  // .webhaste/lists/*.json -> a real /lists/ folder — .webhaste/ itself is
+  // never published, so without this copy, every List block's
+  // scripts/list.js fetch("/lists/<slug>.json") would 404 on a real
+  // Cloudflare/Netlify/Render-to-Local-Folder site. Skipped for --packaged
+  // — that target doesn't use this folder at all, since a real file still
+  // can't be fetch()'d under file:// (CORS); each page's list data is
+  // embedded inline instead (window.CS_LIST_DATA, see the --packaged
+  // branch in the page-writing loop above).
+  //
+  // Only copies lists actually referenced by a data-list-src on some
+  // composed page (WebhasteCompose.findListSrcs(), same extraction
+  // findLottieSrcs() uses for Lottie) — a list an admin has filled in but
+  // hasn't placed on a page yet shouldn't still land at a public URL
+  // nobody links to.
+  let listCount = 0;
+  if (!packaged) {
+    const referencedSlugs = new Set();
+    for (const { composed } of pageEntries) {
+      for (const src of WebhasteCompose.findListSrcs(composed)) {
+        const match = /^\/lists\/([^/]+)\.json$/.exec(src);
+        if (match) referencedSlugs.add(match[1]);
+      }
+    }
+    const listsSrcDir = path.join(cfgDir, "lists");
+    if (referencedSlugs.size && fs.existsSync(listsSrcDir)) {
+      const listsDistDir = path.join(distDir, "lists");
+      fs.mkdirSync(listsDistDir, { recursive: true });
+      for (const slug of referencedSlugs) {
+        const srcFile = path.join(listsSrcDir, `${slug}.json`);
+        if (!fs.existsSync(srcFile)) continue;
+        fs.copyFileSync(srcFile, path.join(listsDistDir, `${slug}.json`));
+        listCount++;
+      }
+    }
+  }
 
-  // sitemap.xml — regenerated every run from the current page list, same as
-  // a real Publish/Render would. buildSitemap() returns null when no domain
-  // is configured, since a sitemap of host-less URLs is meaningless.
-  const sitemapEntries = pageEntries.map(({ relPath, lastmod }) => ({ path: relPath, lastmod }));
-  const sitemap = WebhasteCompose.buildSitemap({ pageEntries: sitemapEntries, pagesData, config });
-  if (sitemap) fs.writeFileSync(path.join(distDir, "sitemap.xml"), sitemap);
-
-  // search-index.json — same page list, but keyed off each page's raw
-  // pre-composition content (see buildSearchIndex()'s comment in
-  // compose-core.js for why: composed output would duplicate nav/footer
-  // chrome into every page's indexed text).
-  const searchEntries = pageEntries.map(({ relPath, lastmod, rawContent }) => ({
-    path: relPath,
-    lastmod,
-    rawContent,
-  }));
-  const searchIndex = WebhasteCompose.buildSearchIndex({ pageEntries: searchEntries, pagesData });
-  if (searchIndex) fs.writeFileSync(path.join(distDir, "search-index.json"), searchIndex);
-
-  // robots.txt — a real, hand-editable project-root file (see ensureScaffold()
-  // in editor.js), copied through untouched rather than regenerated.
-  const robotsPath = path.join(root, "robots.txt");
-  const hasRobots = fs.existsSync(robotsPath);
-  if (hasRobots) fs.copyFileSync(robotsPath, path.join(distDir, "robots.txt"));
-
-  const extras = [sitemap && "sitemap.xml", searchIndex && "search-index.json", hasRobots && "robots.txt"]
+  const extras = [
+    sitemap && "sitemap.xml",
+    !packaged && searchIndexJson && "search-index.json",
+    hasRobots && "robots.txt",
+    redirectsFile && "_redirects",
+  ]
     .filter(Boolean)
     .join(", ");
   console.log(
-    `Rendered ${pageFiles.length} page(s), ${assetCount} asset(s), ${scriptCount} script(s), and ${elementCount} element(s)${extras ? `, plus ${extras},` : ""} to ${path.join(path.relative(root, distDir) || ".", "/")}`
+    `Rendered ${writtenPageCount} page(s), ${assetCount} asset(s), ${scriptCount} script(s), ${elementCount} element(s), and ${listCount} list(s)${extras ? `, plus ${extras},` : ""} to ${path.join(path.relative(root, distDir) || ".", "/")}`
   );
 }
 

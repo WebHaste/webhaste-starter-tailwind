@@ -149,6 +149,82 @@
     return /^\s*(<!DOCTYPE\s+html|<html[\s>])/i.test(rawContent);
   }
 
+  // Auto-generated per-page Open Graph + Twitter Card tags for social link
+  // previews (Slack/Facebook/LinkedIn/Twitter unfurls) — reuses the exact
+  // title/description pages.json already carries for {{TITLE}}/
+  // {{META_DESCRIPTION}}, so there's no separate field to fill in. og:title
+  // is the page's own title alone (not the " | siteName" suffix {{TITLE}}
+  // gets) since og:site_name already carries the site name — a consuming
+  // platform combines the two itself. og:description/twitter:description
+  // are omitted entirely (not emitted empty) when a page has no meta
+  // description, same "omit rather than emit blank" rule as every other
+  // optional pages.json field. og:url is likewise omitted when
+  // config.domain is unset — same reasoning buildSitemap() uses for
+  // skipping the whole file rather than publishing host-less URLs.
+  // Deliberately no og:image: there's no per-page "this is the social
+  // image" field today (Assets just inserts images into content), so
+  // there's no reliable source to point at — left for platforms to guess
+  // from page content, same as a page with no OG tags at all. Twitter's
+  // tags use the name="" attribute, not property="" — a real HTML
+  // attribute distinction from Open Graph's RDFa-based property="", not a
+  // typo.
+  function buildSocialMetaTags(pageMeta, pageTitle, path, config) {
+    const tags = [
+      `<meta property="og:title" content="${escapeXml(pageTitle)}" />`,
+      `<meta property="og:type" content="website" />`,
+      `<meta name="twitter:card" content="summary" />`,
+      `<meta name="twitter:title" content="${escapeXml(pageTitle)}" />`,
+    ];
+    if (config.siteName) {
+      tags.push(`<meta property="og:site_name" content="${escapeXml(config.siteName)}" />`);
+    }
+    if (pageMeta.description) {
+      tags.push(`<meta property="og:description" content="${escapeXml(pageMeta.description)}" />`);
+      tags.push(`<meta name="twitter:description" content="${escapeXml(pageMeta.description)}" />`);
+    }
+    let domain = ((config && config.domain) || "").trim().replace(/\/+$/, "");
+    if (domain) {
+      if (!/^https?:\/\//i.test(domain)) domain = `https://${domain}`;
+      const loc = path === "index.html" ? domain : `${domain}/${path}`;
+      tags.push(`<meta property="og:url" content="${escapeXml(loc)}" />`);
+    }
+    return tags.join("\n");
+  }
+
+  // Optional homepage-only JSON-LD (Organization/LocalBusiness), from Site
+  // Settings' "Schema Markup" section — config.schemaMarkup. Deliberately
+  // scoped to just index.html by composePage() below rather than every
+  // page: these two types describe the site/business as a whole, not any
+  // one page, and Google's own guidance is that Organization markup belongs
+  // on the homepage. A site that needs schema for other pages (Article,
+  // Product, FAQPage, etc.) or wants more control than these two generic
+  // types offer already has Page Properties' "Header code" field for that.
+  // Returns null when no type/name is configured, same "omit rather than
+  // emit broken" rule buildSitemap() uses for a missing domain.
+  function buildSchemaMarkup(config) {
+    const schema = config && config.schemaMarkup;
+    if (!schema || !schema.type || !schema.name) return null;
+    const data = { "@context": "https://schema.org", "@type": schema.type, name: schema.name };
+    let domain = ((config && config.domain) || "").trim().replace(/\/+$/, "");
+    if (domain) {
+      if (!/^https?:\/\//i.test(domain)) domain = `https://${domain}`;
+      data.url = domain;
+    }
+    if (schema.logo) data.logo = schema.logo;
+    if (schema.telephone) data.telephone = schema.telephone;
+    const addr = schema.address || {};
+    if (addr.streetAddress || addr.addressLocality || addr.addressRegion || addr.postalCode || addr.addressCountry) {
+      data.address = { "@type": "PostalAddress" };
+      if (addr.streetAddress) data.address.streetAddress = addr.streetAddress;
+      if (addr.addressLocality) data.address.addressLocality = addr.addressLocality;
+      if (addr.addressRegion) data.address.addressRegion = addr.addressRegion;
+      if (addr.postalCode) data.address.postalCode = addr.postalCode;
+      if (addr.addressCountry) data.address.addressCountry = addr.addressCountry;
+    }
+    if (Array.isArray(schema.sameAs) && schema.sameAs.length) data.sameAs = schema.sameAs;
+    return `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
+  }
+
   // templateText === null/"" means "No layout (raw HTML)" — rawContent
   // ships as-is, same as composePage()'s isPreview=false, no-template branch.
   function composePage({ templateText, rawContent, title, config, navData, pagesData }) {
@@ -174,12 +250,27 @@
       .replace(/{{SITE_NAME}}/g, config.siteName || "")
       .replace(/{{LANG}}/g, pageLang)
       .replace(/{{YEAR}}/g, String(new Date().getFullYear()));
+    out = out.replace(/<\/head>/i, `${buildSocialMetaTags(pageMeta, pageTitle, title, config)}\n</head>`);
+    // Schema Markup is homepage-only — see buildSchemaMarkup()'s own comment
+    // for why "index.html" specifically rather than every page.
+    if (title === "index.html") {
+      const schemaTag = buildSchemaMarkup(config);
+      if (schemaTag) out = out.replace(/<\/head>/i, `${schemaTag}\n</head>`);
+    }
     // Page Properties' "Hide from search engines" checkbox — a real noindex
     // signal (unlike sitemap/search-index exclusion below, which are just
     // omissions from our own generated files and don't stop a crawler that
     // finds the page another way).
     if (pageMeta.noindex) {
       out = out.replace(/<\/head>/i, '  <meta name="robots" content="noindex" />\n</head>');
+    }
+    // Page Properties' "Header code" field — raw HTML/JS pasted in as-is
+    // (e.g. a Google Ads/Analytics per-page conversion snippet that can't
+    // live in the shared template, since it only applies to this one page).
+    // Unlike noindex above this isn't a WebHaste-generated tag, so it's
+    // trusted verbatim rather than built from a checkbox.
+    if (pageMeta.headCode && pageMeta.headCode.trim()) {
+      out = out.replace(/<\/head>/i, `${pageMeta.headCode}\n</head>`);
     }
     return out;
   }
@@ -204,6 +295,37 @@
 
   function isSearchExcluded(pageMeta) {
     return !!(pageMeta && pageMeta.excludeFromSearch);
+  }
+
+  // Turns a root-relative path ("/about.html", "/", "/assets/x.jpg") into one
+  // relative to a page sitting `depth` folders deep (depth = number of "/" in
+  // its own output path). depth 0 → "about.html" unprefixed; depth 2 (e.g.
+  // "blog/2024/post.html") → "../../about.html". Used both for rewriting HTML
+  // attributes (rewriteRootRelativePaths below) and for relativizing each
+  // search-result URL when the index is embedded per page (see
+  // buildSearchIndex()'s callers for the packaged deployment target).
+  function relativizeRootPath(rootRelativePath, depth) {
+    const prefix = "../".repeat(depth);
+    const rest = rootRelativePath === "/" ? "index.html" : rootRelativePath.replace(/^\//, "");
+    return prefix + rest;
+  }
+
+  // Rewrites every href="/..."/src="/..." in composed HTML to a path relative
+  // to a page `depth` folders deep — covers nav links (from nav.json), image/
+  // file srcs (assetSnippet() in editor.js), and anything an author hand-typed
+  // (e.g. a favicon <link> under elements/), since by the time composePage()
+  // returns they're all just attribute strings in one HTML blob. Used by the
+  // "Packaged" deployment target, which composes a site that has to work when
+  // opened straight from disk (file://) rather than served over HTTP, where a
+  // leading "/" would resolve against the filesystem root instead of the
+  // project folder. Deliberately does NOT touch "//host" (protocol-relative
+  // external URLs — the negative lookahead) or paths without a leading slash
+  // (already page-relative, left alone). Out of scope: inline CSS url(/...) —
+  // nothing WebHaste generates produces that today.
+  function rewriteRootRelativePaths(html, depth) {
+    return html.replace(/\b(href|src)=(["'])\/(?!\/)([^"']*)\2/gi, (match, attr, quote, rest) => {
+      return `${attr}=${quote}${relativizeRootPath("/" + rest, depth)}${quote}`;
+    });
   }
 
   function escapeXml(str) {
@@ -320,6 +442,106 @@
     return JSON.stringify(entries);
   }
 
+  // Finds every data-lottie-src="..." value in a composed page's HTML —
+  // used by the packaged deployment target to know which Lottie assets need
+  // their JSON embedded inline per page (see buildLottieDataScript() below
+  // for why: fetch()/XHR of a local file is blocked by CORS under file://
+  // regardless of path form, the same reason search's index is embedded
+  // as window.CS_SEARCH_INDEX instead of fetched there). Call this on a
+  // page's content BEFORE rewriteRootRelativePaths() runs on it, while
+  // every value is still the plain "/assets/name.json" lottieBlockMarkup()/
+  // setLottieBlockSource() always write — callers can't cheaply reverse a
+  // "../../assets/name.json" back to a bare filename, but they can easily
+  // relativizeRootPath() this original value themselves to know what the
+  // rewritten attribute will read as, for keying the data embedded below.
+  function findLottieSrcs(html) {
+    const srcs = new Set();
+    String(html || "").replace(/data-lottie-src="([^"]+)"/g, (match, src) => {
+      srcs.add(src);
+      return match;
+    });
+    return Array.from(srcs);
+  }
+
+  // Finds every data-list-src="..." value in a composed page's HTML — used
+  // by every publish/render caller to know which lists are actually placed
+  // on a page, so an admin-managed list that hasn't been inserted anywhere
+  // yet (or was removed from every page since) doesn't still get copied out
+  // to a public /lists/<slug>.json URL. Unlike findLottieSrcs() (which must
+  // run before rewriteRootRelativePaths() to see the pre-rewrite value),
+  // callers can run this at any point — nothing rewrites a list's own
+  // published path back to a slug the way it does for Lottie's asset
+  // lookup, since a list is republished by slug, not read back by exact
+  // attribute value.
+  function findListSrcs(html) {
+    const srcs = new Set();
+    String(html || "").replace(/data-list-src="([^"]+)"/g, (match, src) => {
+      srcs.add(src);
+      return match;
+    });
+    return Array.from(srcs);
+  }
+
+  // dataBySrc is { [finalAttributeValue]: parsedAnimationJson }, already
+  // resolved and relativized by the caller (reading each asset file is
+  // environment-specific — browser File System Access vs. Node fs — so it
+  // can't happen in this dependency-free module, same reason lastmod
+  // gathering for buildSitemap() lives in each caller instead of here).
+  // Returns null when there's nothing to embed, so callers can skip the
+  // <head> insertion entirely, same as buildSitemap()/buildSearchIndex().
+  function buildLottieDataScript(dataBySrc) {
+    if (!dataBySrc || !Object.keys(dataBySrc).length) return null;
+    return `<script>window.CS_LOTTIE_DATA = ${JSON.stringify(dataBySrc)};</script>`;
+  }
+
+  // Same idea as buildLottieDataScript() above, for Lists under the
+  // Packaged (file://) target — a real /lists/<slug>.json file can't be
+  // fetch()'d under file:// (CORS) any more than a real Lottie asset or
+  // search-index.json can, so list.js needs the same per-page embedded
+  // fallback. dataBySrc is { [finalAttributeValue]: parsedListJson },
+  // resolved/relativized by the caller for the same environment-specific
+  // reasons as buildLottieDataScript().
+  function buildListDataScript(dataBySrc) {
+    if (!dataBySrc || !Object.keys(dataBySrc).length) return null;
+    return `<script>window.CS_LIST_DATA = ${JSON.stringify(dataBySrc)};</script>`;
+  }
+
+  // Builds a _redirects file from .webhaste/redirects.json's entries —
+  // Cloudflare Pages deliberately supports the same file/format Netlify
+  // originated, so one generated file serves both real-server deploy
+  // targets with no target-specific branching, unlike nearly everything
+  // else in this module. Not written for the Packaged (file://) target —
+  // there's no server there to redirect on; see CLAUDE.md's "Redirects"
+  // section for why a static stub page isn't generated as a fallback there
+  // either. Returns null when nothing is configured, so callers can skip
+  // writing the file entirely, same "omit rather than emit empty" rule
+  // buildSitemap()/buildSearchIndex() already follow. Deliberately not
+  // forced (no trailing "!") — if a page is later recreated at a "from"
+  // path, the real file should win over a stale redirect rather than the
+  // redirect silently blocking it forever.
+  //
+  // Every WebHaste page is authored as a .html file, but Cloudflare Pages
+  // and Netlify both strip that extension by default (/about.html serves
+  // at /about) — so the URL search engines actually indexed, and the one a
+  // visitor has bookmarked, is usually the extensionless one, not the
+  // .html path a site owner types into the "from" field. A rule that only
+  // covers the .html form misses the very request it's meant to catch, so
+  // each entry whose "from" ends in .html also emits the extensionless
+  // form as a second rule, from the same single dialog entry, rather than
+  // requiring a site owner to know to add it themselves as a separate one.
+  function buildRedirectsFile(redirects) {
+    const list = (redirects || []).filter((r) => r && r.from && r.to);
+    if (!list.length) return null;
+    const lines = [];
+    for (const r of list) {
+      const type = r.type || 301;
+      lines.push(`${r.from}  ${r.to}  ${type}`);
+      const bare = r.from.replace(/\.html$/i, "");
+      if (bare !== r.from && bare) lines.push(`${bare}  ${r.to}  ${type}`);
+    }
+    return lines.join("\n") + "\n";
+  }
+
   return {
     renderMenu,
     composePage,
@@ -329,5 +551,13 @@
     isSearchExcluded,
     buildSitemap,
     buildSearchIndex,
+    buildSchemaMarkup,
+    relativizeRootPath,
+    rewriteRootRelativePaths,
+    findLottieSrcs,
+    buildLottieDataScript,
+    findListSrcs,
+    buildListDataScript,
+    buildRedirectsFile,
   };
 });
