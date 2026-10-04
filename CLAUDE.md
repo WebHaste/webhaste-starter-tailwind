@@ -156,6 +156,22 @@ paths need rewriting too once the file they're relative to moves.
 (Page files themselves don't have this restriction — `blog/post.html` is
 fine — this only applies to `assets/`/`scripts/`.)
 
+## Template-level files go in `elements/`, not `assets/`
+
+`assets/` is what the editor's Assets dialog lists — it's for content a site
+owner inserts into pages, so anything dumped there looks like something an
+editor might pick. Files that only the *template or stylesheets* use belong
+in **`elements/`**: a published, flat folder with no editor UI. That means
+web fonts (`.woff2`, `.woff`, `.ttf`), icon-font files, the site logo,
+favicon, CSS background images, and decorative shapes/textures referenced by
+a stylesheet or the template. Reference them as `/elements/<name>` (CSS:
+`url(/elements/<name>)`; template: `<img src="/elements/logo.png">`). CSS and
+JS stay in `scripts/`. It's created when you add the first file.
+
+Rule of thumb: if a person would reasonably pick it from a media library
+while writing a page, it's `assets/`; if removing it would break the
+*design* rather than a page's content, it's `elements/`.
+
 ## Multi-language content
 
 `{{LANG}}` in the layout template resolves per page as: this page's
@@ -364,6 +380,99 @@ the Previous/Next controls render as a sibling element right after the
 child of `<table>`, so there's nowhere inside the table itself for them to
 go.
 
+### Running your own JavaScript after a list renders
+
+Rows are built in the visitor's browser, so a script that acts on a finished
+list must wait for it. After every draw, for all three views, `list.js`
+fires a bubbling `cs-list-rendered` event on the list's `[data-list-src]`
+element (for "List: Table", the `<table>`) and sets
+`data-list-rendered="true"` on it. `event.detail` is `{ src, view, page,
+pageCount, entries, list }` — `entries` are the rows just drawn, `list` the
+whole parsed list.
+
+```js
+document.addEventListener("cs-list-rendered", function (e) { /* e.target, e.detail */ });
+```
+
+It fires again on every Previous/Next redraw, so guard one-time setup.
+Register the listener before `DOMContentLoaded` (a `<head>` script, an
+end-of-body script, or `defer`): in a Packaged build the data is embedded, so
+the first render is synchronous at `DOMContentLoaded` and a later listener
+misses it — a late script should check
+`el.hasAttribute("data-list-rendered")` first. Needs a `scripts/list.js` that
+has the event; it's copy-once, so a project scaffolded earlier has an older
+copy (`grep -c cs-list-rendered scripts/list.js` returns `0`).
+
+### Optional: DataTables on a "List: Table"
+
+WebHaste doesn't bundle or inject DataTables (same no-framework-injection
+rule as everything else here), but a "List: Table" block is a real
+`<table>` with real `<thead>`/`<tbody>`, so a site that wants client-side
+search/sort/paging can add it itself. Three pieces, all in the site, none
+in WebHaste:
+
+1. DataTables' CSS + JS in the template's `<head>`, after `list.js`
+   (DataTables 3.x needs no jQuery — the 3.1.2 build's UMD wrapper has no
+   dependencies; the 2.x line's standard `<script>` build did require it, so
+   don't copy a 2.x snippet. Check datatables.net for the current version):
+   ```html
+   <link rel="stylesheet" href="https://cdn.datatables.net/3.1.2/css/dataTables.dataTables.min.css">
+   <script src="https://cdn.datatables.net/3.1.2/js/dataTables.min.js" defer></script>
+   ```
+2. An `id` on the block's `<table>` in Code view (e.g. `id="shows-table"`);
+   leave `data-list-src`/`data-list-view` alone.
+3. An init script that waits for the list to render — **don't** call
+   `new DataTable()` on page load: on a served site the rows aren't there
+   yet, so DataTables would initialize against the one-row placeholder. With
+   a current `scripts/list.js`, use the `cs-list-rendered` event (see
+   "Running your own JavaScript after a list renders" above); it works in
+   served and Packaged builds and needs no `id`:
+   ```html
+   <script>
+   document.addEventListener("cs-list-rendered", function (e) {
+     var table = e.target;
+     if (table.tagName !== "TABLE" || table.dataset.dt) return;
+     table.dataset.dt = "1"; // draw can fire again; init once
+     new DataTable(table, { order: [] }); // [] keeps the list's own sort
+   });
+   </script>
+   ```
+   For an older `scripts/list.js` with no event, check first and then watch
+   instead:
+   ```html
+   <script>
+   document.addEventListener("DOMContentLoaded", function () {
+     var table = document.getElementById("shows-table");
+     if (!table) return;
+     var tbody = table.querySelector("tbody");
+     function start() {
+       if (tbody.querySelector(".cs-list-placeholder-cell")) return false;
+       new DataTable(table, { order: [] }); // [] keeps the list's own sort
+       return true;
+     }
+     if (!start()) {
+       var obs = new MutationObserver(function () {
+         if (start()) obs.disconnect();
+       });
+       obs.observe(tbody, { childList: true });
+     }
+   });
+   </script>
+   ```
+   Check first, then watch: in a Packaged (`file://`) build the list's data
+   is embedded, so the rows already exist at `DOMContentLoaded` and an
+   observer alone would never fire.
+
+Turn **off** the list's own pagination when doing this — list.js's
+Previous/Next controls and DataTables' paging would both render, and
+list.js rebuilding `<tbody>` on a page change would break DataTables'
+internal state. As with every other `scripts/*.js` here, none of this runs
+in the editor's preview iframe (CSP blocks external scripts) — check it in
+a Render to Local Folder build or on the published site. A Packaged
+(`file://`) build still renders the list, but a CDN-hosted DataTables
+needs internet access; vendor the files into `scripts/` for a truly
+offline hand-off.
+
 ## Open Graph / Twitter Card tags are automatic
 
 Every page gets `og:title`, `og:description`, `og:type`, `og:site_name`,
@@ -501,11 +610,12 @@ way to render a page outside the extension itself.
 ## Do not hand-edit
 
 - `dist/` (or whatever `deployDirectory` points at) — build output from
-  "Render to Local Folder," overwritten on every render. WebHaste doesn't
-  scaffold a `.gitignore` for it, so this project's `dist/` is still
-  committed to version control — expect its diffs to show up in
-  `git status` after every render; that's expected noise from the build,
-  not something to investigate or hand-fix.
+  "Render to Local Folder," overwritten on every render. This project's
+  `.gitignore` excludes `dist/`, so a render never shows up in `git status`,
+  and it isn't committed: Publish composes the site itself, so nothing here
+  needs to exist ahead of time. If the Local Render Folder is changed in Site
+  Settings, change the `dist/` line in `.gitignore` to match (unless the
+  output is meant to be committed, e.g. `docs/` for GitHub Pages).
 - `scripts/styles.css` — compiled from `tailwind-input.css` by
   `npm run build:css`/`watch:css`, see "Tailwind build step" above. Edit
   `tailwind-input.css`, never this file. Its sibling `scripts/custom.css`

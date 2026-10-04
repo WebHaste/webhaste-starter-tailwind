@@ -7,5 +7,6 @@
   "language": "en",
   "deploymentTarget": "cloudflare",
   "deployDirectory": "dist",
-  "projectId": "a73fff65-0925-4a08-afcc-27c3b2f3ea6d"
+  "projectId": "a73fff65-0925-4a08-afcc-27c3b2f3ea6d",
+  "imageResizeMaxDimension": 1920
 }

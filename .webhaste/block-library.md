@@ -69,11 +69,32 @@ _No `tailwind` markup yet for this block — shown disabled in the Blocks dialog
 ### Misc Embed
 _No `tailwind` markup yet for this block — shown disabled in the Blocks dialog._
 
+### Lottie Animation
+_No `tailwind` markup yet for this block — shown disabled in the Blocks dialog._
+
+### List: Links
+_No `tailwind` markup yet for this block — shown disabled in the Blocks dialog._
+
+### List: Directory
+_No `tailwind` markup yet for this block — shown disabled in the Blocks dialog._
+
+### List: Table
+```html
+
+      <table class="table-auto" data-list-src="" data-list-view="table">
+  <thead></thead>
+  <tbody>
+    <tr><td class="cs-list-placeholder-cell"><span class="cs-list-placeholder__icon">🗂️</span> <span class="cs-list-placeholder__label">🗂️ Click this block's 🗂️ toolbar button to choose a list</span></td></tr>
+  </tbody>
+</table>
+
+```
+
 ## Custom (`.webhaste/blocks/`)
 
-- **About** — `.webhaste/blocks/about.html`
+- **Cta** — `.webhaste/blocks/cta.html`
 - **Articles** — `.webhaste/blocks/articles.html`
 - **Contact Us** — `.webhaste/blocks/contact-us.html`
-- **Cta** — `.webhaste/blocks/cta.html`
+- **About** — `.webhaste/blocks/about.html`
 - **Header Hero** — `.webhaste/blocks/header-hero.html`
 - **Pricing Block** — `.webhaste/blocks/pricing-block.html`

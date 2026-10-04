@@ -1,1 +1,15 @@
 node_modules/
+
+# WebHaste's per-machine "what did I last ship" cache, not project state a clone
+# should inherit.
+.webhaste/publish-state.json
+
+# Safety-net copies WebHaste writes into .webhaste/backups/ (conflict backups,
+# and the previous version of a skill when it's refreshed). Never part of the site.
+.webhaste/backups/
+
+# Local render output (Render to Local Folder). Publish composes the site itself,
+# so this never needs to be committed. If you change the Local Render Folder in
+# Site Settings, change this line to match (unless the output should be
+# committed, e.g. docs/ for GitHub Pages).
+dist/

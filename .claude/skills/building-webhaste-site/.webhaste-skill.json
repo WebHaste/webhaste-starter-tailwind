@@ -1,0 +1,11 @@
+{
+  "version": 4,
+  "files": {
+    "SKILL.md": "5825618d3751fb9671ebe8fd92a0f601c1041cd11145b098a146d3a8e5a8b20c",
+    "references/pages-and-templates.md": "110d932851555f11d3e2e11206fadff9298739564c981af5fd0916c6ed9c7fc5",
+    "references/navigation-and-metadata.md": "5df1295ef87968f6b21b9c7c8425279b9ef7cd0193ee611a6d30fe4b7ed545c7",
+    "references/blocks.md": "5eb9bb46f4523f9d6266481c52842881c7961180a7c4afff36d6be738867a297",
+    "references/seo-and-search.md": "5fd53b714a09ee6329bd2d8416e4cc1b1fcfa8e9d0af4ef25441a80e91de82c7",
+    "references/site-config-and-testing.md": "71e749af9e9d9cdd9e20e66b5ff56c7aacca6ad338f90b6aca4487c14810ce30"
+  }
+}
